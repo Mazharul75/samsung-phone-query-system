@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Samsung Phone Query and Review System - Python dependencies
+#
+# The machine this project targets has no CUDA GPU, so PyTorch is pulled from
+# the official CPU-only wheel index. This keeps the download ~10x smaller and
+# avoids shipping unused CUDA runtimes.
+# ---------------------------------------------------------------------------
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# ---------------------------------------------------------------------------
+# Phase 1 - Web scraping & database
+# ---------------------------------------------------------------------------
+requests==2.32.5
+beautifulsoup4==4.14.2
+lxml==6.1.0
+SQLAlchemy==2.0.44
+PyMySQL==1.1.2
+cryptography==46.0.3
+tenacity==9.1.2
+
+# ---------------------------------------------------------------------------
+# Phase 2 - RAG chatbot (open-source models only)
+# ---------------------------------------------------------------------------
+torch==2.9.0
+transformers==4.57.1
+sentence-transformers==5.1.2
+accelerate==1.11.0
+faiss-cpu==1.12.0
+rank-bm25==0.2.2
+huggingface-hub==0.36.0
+
+# Optional CPU accelerator. This is a *runtime* for the same Hugging Face
+# model, not a different model: it executes Qwen2.5-1.5B-Instruct with INT8
+# weights and raised generation from 2 to ~10 tokens/second on the reference
+# machine. The application falls back to plain PyTorch automatically when
+# these packages are absent, so they can be removed without code changes.
+optimum-intel[openvino]==2.1.0
+
+# ---------------------------------------------------------------------------
+# Phase 3 - Multi-agent system
+# ---------------------------------------------------------------------------
+langchain==0.3.27
+langchain-core==0.3.80
+
+# ---------------------------------------------------------------------------
+# Phase 4 - REST API
+# ---------------------------------------------------------------------------
+fastapi==0.120.0
+uvicorn[standard]==0.38.0
+pydantic==2.12.4
+pydantic-settings==2.13.0
+python-dotenv==1.2.1
+
+# ---------------------------------------------------------------------------
+# Testing
+# ---------------------------------------------------------------------------
+pytest==8.4.2
+httpx==0.28.1
