@@ -34,12 +34,28 @@ def client(request):
 # Service endpoints
 # ---------------------------------------------------------------------------
 class TestServiceEndpoints:
-    def test_root_lists_the_endpoints(self, client):
-        response = client.get("/")
+    def test_api_index_lists_the_endpoints(self, client):
+        response = client.get("/api")
         assert response.status_code == 200
         body = response.json()
         assert "endpoints" in body
         assert body["service"]
+
+    def test_root_serves_the_web_client(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert "Samsung Phone Query and Review System" in response.text
+
+    def test_web_client_only_calls_documented_endpoints(self, client):
+        """The page must not depend on routes the API does not expose."""
+        page = client.get("/").text
+        served = {
+            route.path for route in app.routes if hasattr(route, "methods")
+        }
+        for path in ("/health", "/stats", "/phones", "/chat", "/compare", "/reviews"):
+            assert path in page, f"UI never calls {path}"
+            assert path in served, f"UI calls undocumented {path}"
 
     def test_health_reports_ready(self, client):
         response = client.get("/health")
