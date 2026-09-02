@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Samsung Phone Query and Review System</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#151b23; --panel-2:#1b232d; --line:#283039;
+    --text:#e6edf3; --muted:#8b949e; --accent:#1f6feb; --accent-2:#388bfd;
+    --good:#3fb950; --warn:#d29922; --bad:#f85149; --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  code,pre,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+
+  /* ---------- layout ---------- */
+  header{
+    border-bottom:1px solid var(--line); background:var(--panel);
+    padding:18px 28px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  header h1{font-size:18px;font-weight:600;letter-spacing:-.2px}
+  header .sub{color:var(--muted);font-size:13px}
+  .spacer{flex:1}
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;padding:5px 12px;
+    border:1px solid var(--line);border-radius:999px;font-size:12.5px;color:var(--muted);
+    background:var(--panel-2);
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .dot.ok{background:var(--good);box-shadow:0 0 8px var(--good)}
+  .dot.bad{background:var(--bad)}
+
+  nav{
+    display:flex;gap:2px;padding:0 28px;background:var(--panel);
+    border-bottom:1px solid var(--line);overflow-x:auto;
+  }
+  nav button{
+    background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+    padding:12px 16px;font-size:14px;cursor:pointer;white-space:nowrap;font-weight:500;
+  }
+  nav button:hover{color:var(--text)}
+  nav button.active{color:var(--text);border-bottom-color:var(--accent)}
+  nav button .step{
+    font-size:10px;color:var(--accent-2);display:block;text-align:left;
+    letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+  }
+
+  main{max-width:1180px;margin:0 auto;padding:28px}
+  .panel{display:none}
+  .panel.active{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;margin-bottom:18px;
+  }
+  .card h2{font-size:15px;font-weight:600;margin-bottom:4px}
+  .card .hint{color:var(--muted);font-size:13px;margin-bottom:16px}
+
+  /* ---------- controls ---------- */
+  input,select,textarea{
+    background:var(--bg);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:11px 13px;font-size:14px;font-family:inherit;width:100%;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button.btn{
+    background:var(--accent);border:none;color:#fff;padding:11px 20px;
+    border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;
+  }
+  button.btn:hover{background:var(--accent-2)}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:var(--panel-2);border:1px solid var(--line);color:var(--text)}
+  button.ghost:hover{background:var(--line)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chip{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    padding:6px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--text)}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .stat .n{font-size:26px;font-weight:600;letter-spacing:-.5px}
+  .stat .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  tbody tr:hover{background:var(--panel-2)}
+  td.win{color:var(--good);font-weight:600}
+  .tablewrap{overflow-x:auto}
+
+  /* ---------- phone grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .phone{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;cursor:pointer;transition:border-color .15s;
+  }
+  .phone:hover{border-color:var(--accent)}
+  .phone img{width:100%;height:130px;object-fit:contain;margin-bottom:10px}
+  .phone .nm{font-weight:600;font-size:14px;margin-bottom:6px}
+  .phone .sp{color:var(--muted);font-size:12.5px;line-height:1.7}
+
+  /* ---------- answer ---------- */
+  .answer{
+    background:var(--panel-2);border:1px solid var(--line);
+    border-left:3px solid var(--accent);border-radius:8px;padding:18px;margin-top:16px;
+    white-space:pre-wrap;
+  }
+  .badge{
+    display:inline-block;padding:3px 10px;border-radius:6px;font-size:11.5px;
+    font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+    background:rgba(31,111,235,.15);color:var(--accent-2);border:1px solid rgba(31,111,235,.35);
+  }
+  .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .sources{margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .sources span{
+    display:inline-block;background:var(--panel-2);border:1px solid var(--line);
+    padding:4px 10px;border-radius:6px;margin:3px 4px 0 0;
+  }
+
+  /* ---------- agents ---------- */
+  .agent{
+    display:flex;align-items:center;gap:12px;padding:12px 14px;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;margin-bottom:8px;
+  }
+  .agent .idx{
+    width:26px;height:26px;border-radius:50%;background:var(--bg);border:1px solid var(--line);
+    display:grid;place-items:center;font-size:12px;color:var(--muted);flex-shrink:0;
+  }
+  .agent.done .idx{background:var(--good);border-color:var(--good);color:#0d1117;font-weight:700}
+  .agent.run .idx{border-color:var(--accent);color:var(--accent-2)}
+  .agent .nm{font-weight:600;font-size:13.5px}
+  .agent .rl{color:var(--muted);font-size:12.5px}
+  .agent .t{margin-left:auto;color:var(--muted);font-size:12.5px}
+  .spin{
+    width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:sp .7s linear infinite;display:inline-block;
+  }
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .review h3{font-size:15px;margin:22px 0 8px;color:var(--accent-2)}
+  .review p{margin-bottom:10px}
+  .verdict{border-left:3px solid var(--good);padding-left:14px;margin-top:8px}
+  .err{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.35);color:#ffa198;
+       padding:12px 14px;border-radius:8px;margin-top:14px;font-size:13.5px}
+  .muted{color:var(--muted)}
+  .note{color:var(--muted);font-size:12.5px;margin-top:10px}
+  footer{border-top:1px solid var(--line);padding:18px 28px;color:var(--muted);font-size:12.5px;text-align:center}
+  a{color:var(--accent-2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Samsung Phone Query and Review System</h1>
+    <div class="sub">Web scraping &middot; RAG chatbot &middot; Multi-agent reviews &middot; REST API</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="pill"><span class="dot" id="hDot"></span><span id="hTxt">connecting…</span></span>
+  <span class="pill" id="hModel">&mdash;</span>
+</header>
+
+<nav>
+  <button class="active" data-p="dash"><span class="step">Overview</span>Dashboard</button>
+  <button data-p="cat"><span class="step">Step 1</span>Scraped Data</button>
+  <button data-p="chat"><span class="step">Step 2</span>Ask a Question</button>
+  <button data-p="cmp"><span class="step">Step 2</span>Compare</button>
+  <button data-p="rev"><span class="step">Step 3</span>Generate Review</button>
+  <button data-p="api"><span class="step">Step 4</span>API</button>
+</nav>
+
+<main>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="panel active" id="p-dash">
+    <div class="card">
+      <h2>System status</h2>
+      <p class="hint">Live figures read from the database and the search index.</p>
+      <div class="stats" id="stats"><span class="muted">Loading…</span></div>
+    </div>
+    <div class="card">
+      <h2>How it works</h2>
+      <p class="hint">Four stages, matching the project's execution plan.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Step</th><th>Stage</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">1</td><td>Scraping &amp; database</td>
+              <td>Specifications for 15 Samsung phones are scraped from GSMArena and normalised into four MySQL tables.</td></tr>
+          <tr><td class="mono">2</td><td>RAG chatbot</td>
+              <td>Questions are classified, relevant documents retrieved with FAISS + BM25, and answered by a local open-source model grounded in SQL facts.</td></tr>
+          <tr><td class="mono">3</td><td>Multi-agent reviews</td>
+              <td>Three agents collaborate: one retrieves specifications, one ranks the phone against the catalogue, one writes the review.</td></tr>
+          <tr><td class="mono">4</td><td>REST API</td>
+              <td>Everything above is exposed over FastAPI. This page is a client of that API.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============ CATALOGUE ============ -->
+  <section class="panel" id="p-cat">
+    <div class="card">
+      <h2>Scraped phone catalogue</h2>
+      <p class="hint">Every phone below was scraped from GSMArena and stored in MySQL. Click any card for its full specification sheet.</p>
+      <div class="row"><input id="catSearch" placeholder="Filter by model name…"></div>
+      <div class="grid" id="grid" style="margin-top:16px"><span class="muted">Loading…</span></div>
+    </div>
+    <div class="card" id="detailCard" style="display:none">
+      <h2 id="detailName"></h2>
+      <p class="hint" id="detailSub"></p>
+      <div id="detailSpecs"></div>
+    </div>
+  </section>
+
+  <!-- ============ CHAT ============ -->
+  <section class="panel" id="p-chat">
+    <div class="card">
+      <h2>Ask a question</h2>
+      <p class="hint">Answered by a locally hosted open-source model using retrieved specifications. Nothing is sent to an external service.</p>
+      <div class="row">
+        <input id="q" placeholder="e.g. What are the camera specs of the Samsung Galaxy S23?"
+               onkeydown="if(event.key==='Enter')ask()">
+        <button class="btn" id="askBtn" onclick="ask()">Ask</button>
+      </div>
+      <div class="chips" id="samples"></div>
+      <div id="chatOut"></div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARE ============ -->
+  <section class="panel" id="p-cmp">
+    <div class="card">
+      <h2>Compare phones</h2>
+      <p class="hint">A direct database comparison &mdash; no language model is involved, so every figure is exactly what was scraped.</p>
+      <div class="row">
+        <select id="cmpA" style="flex:1;min-width:200px"></select>
+        <span class="muted">vs</span>
+        <select id="cmpB" style="flex:1;min-width:200px"></select>
+        <button class="btn" id="cmpBtn" onclick="compare()">Compare</button>
+      </div>
+      <div id="cmpOut"></div>
+    </div>
+  </section>
+
+  <!-- ============ REVIEW ============ -->
+  <section class="panel" id="p-rev">
+    <div class="card">
+      <h2>Generate a product review</h2>
+      <p class="hint">Three specialist agents collaborate. Two of them use no language model at all &mdash; every fact in the review comes from the database.</p>
+      <div class="row">
+        <select id="revPhone" style="flex:1;min-width:220px"></select>
+        <button class="btn" id="revBtn" onclick="review()">Generate review</button>
+      </div>
+      <p class="note">Generation runs a local model on CPU and takes roughly one to two minutes.</p>
+      <div id="revAgents" style="margin-top:18px"></div>
+      <div id="revOut"></div>
+    </div>
+  </section>
+
+  <!-- ============ API ============ -->
+  <section class="panel" id="p-api">
+    <div class="card">
+      <h2>REST API</h2>
+      <p class="hint">This page uses only the public endpoints below. Full interactive documentation is generated by FastAPI.</p>
+      <div class="row"><a href="/docs" target="_blank"><button class="btn">Open interactive API docs</button></a>
+      <a href="/openapi.json" target="_blank"><button class="btn ghost">OpenAPI schema</button></a></div>
+      <div class="tablewrap" style="margin-top:18px"><table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">GET</td><td class="mono">/health</td><td>Database, index and model readiness</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/stats</td><td>Dataset statistics</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/chat</td><td>Ask a free-text question</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/phones</td><td>List the catalogue</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/phones/search?q=</td><td>Search by model name</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/phones/{id_or_slug}</td><td>Full specification sheet</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/compare</td><td>Compare two or three phones</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/agents</td><td>Describe the agent crew</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/reviews</td><td>Generate a review (multi-agent)</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>Specifications sourced from GSMArena &middot; All models run locally on open-source weights</footer>
+
+<script>
+"use strict";
+
+const $  = (s) => document.querySelector(s);
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c;
+                          if (x !== undefined) n.textContent = x; return n; };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
+let PHONES = [];
+
+/* ---------------- navigation ---------------- */
+document.querySelectorAll("nav button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    $("#p-" + b.dataset.p).classList.add("active");
+  };
+});
+
+/* ---------------- api helper ---------------- */
+async function api(path, options) {
+  const res = await fetch(path, options);
+  if (!res.ok) {
+    let detail = res.status + " " + res.statusText;
+    try { const j = await res.json(); if (j.detail) detail = j.detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+const post = (path, body) => api(path, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+/* ---------------- health + stats ---------------- */
+async function loadHealth() {
+  try {
+    const h = await api("/health");
+    const ready = h.status === "ready";
+    $("#hDot").className = "dot " + (ready ? "ok" : "bad");
+    $("#hTxt").textContent = ready ? "System ready" : "Degraded";
+    $("#hModel").textContent = h.llm_backend + (h.llm_loaded ? " · model loaded" : " · loading");
+
+    const s = await api("/stats");
+    const stats = [
+      [s.phones, "Phones scraped"],
+      [s.specifications.toLocaleString(), "Specifications"],
+      [s.prices, "Price points"],
+      [h.documents_indexed, "Indexed documents"],
+      [s.release_years.length ? s.release_years[0] + "–" + s.release_years.at(-1) : "—", "Model years"],
+      [s.largest_battery_mah ? s.largest_battery_mah + " mAh" : "—", "Largest battery"],
+    ];
+    const box = $("#stats"); box.innerHTML = "";
+    stats.forEach(([n, l]) => {
+      const d = el("div", "stat");
+      d.append(el("div", "n", n), el("div", "l", l));
+      box.append(d);
+    });
+  } catch (e) {
+    $("#hDot").className = "dot bad";
+    $("#hTxt").textContent = "API unreachable";
+    $("#stats").innerHTML = '<span class="muted">Could not reach the API.</span>';
+  }
+}
+
+/* ---------------- catalogue ---------------- */
+async function loadPhones() {
+  try {
+    const data = await api("/phones?limit=100");
+    PHONES = data.phones;
+    renderGrid(PHONES);
+
+    ["#cmpA", "#cmpB", "#revPhone"].forEach(sel => {
+      const s = $(sel); s.innerHTML = "";
+      PHONES.forEach(p => s.append(new Option(p.name, p.name)));
+    });
+    if (PHONES.length > 1) $("#cmpB").selectedIndex = 1;
+  } catch (e) {
+    $("#grid").innerHTML = '<span class="muted">Could not load the catalogue.</span>';
+  }
+}
+
+function renderGrid(list) {
+  const g = $("#grid"); g.innerHTML = "";
+  if (!list.length) { g.innerHTML = '<span class="muted">No phones match that filter.</span>'; return; }
+  list.forEach(p => {
+    const c = el("div", "phone");
+    c.onclick = () => showDetail(p.slug);
+    if (p.image_url) {
+      const img = el("img"); img.src = p.image_url; img.alt = p.name; img.loading = "lazy";
+      c.append(img);
+    }
+    c.append(el("div", "nm", p.name));
+    const sp = el("div", "sp");
+    sp.innerHTML =
+      (p.release_year ? p.release_year + " &middot; " : "") +
+      (p.display_size_inches ? p.display_size_inches + '"' : "") +
+      "<br>" + esc(p.chipset || "") +
+      "<br>" + (p.battery_capacity_mah ? p.battery_capacity_mah + " mAh" : "") +
+      (p.main_camera_mp ? " &middot; " + p.main_camera_mp + " MP" : "");
+    c.append(sp);
+    g.append(c);
+  });
+}
+
+$("#catSearch").oninput = (e) => {
+  const q = e.target.value.toLowerCase();
+  renderGrid(PHONES.filter(p => p.name.toLowerCase().includes(q)));
+};
+
+async function showDetail(slug) {
+  const card = $("#detailCard");
+  card.style.display = "block";
+  $("#detailName").textContent = "Loading…";
+  $("#detailSub").textContent = "";
+  $("#detailSpecs").innerHTML = "";
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  try {
+    const p = await api("/phones/" + encodeURIComponent(slug));
+    $("#detailName").textContent = p.name;
+    $("#detailSub").textContent =
+      [p.announced, p.chipset, p.memory_internal].filter(Boolean).join("  ·  ");
+
+    const out = $("#detailSpecs");
+    if (p.prices && p.prices.length) {
+      const pr = el("p", "note",
+        "Listed price: " + p.prices.map(x => x.currency + " " + x.amount.toFixed(2)).join(", "));
+      out.append(pr);
+    }
+    Object.entries(p.specifications).forEach(([cat, rows]) => {
+      out.append(el("h3", null, cat));
+      const wrap = el("div", "tablewrap");
+      const t = el("table"); const tb = el("tbody");
+      rows.forEach(r => {
+        const tr = el("tr");
+        const k = el("td", null, r.key); k.style.width = "180px"; k.style.color = "var(--muted)";
+        tr.append(k, el("td", null, r.value));
+        tb.append(tr);
+      });
+      t.append(tb); wrap.append(t); out.append(wrap);
+    });
+  } catch (e) {
+    $("#detailName").textContent = "Not found";
+    $("#detailSpecs").innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+  }
+}
+
+/* ---------------- chat ---------------- */
+const SAMPLES = [
+  "What are the camera specs of the Samsung Galaxy S23?",
+  "Which Samsung phone has the best battery life?",
+  "How does the Galaxy S23 compare to the S22 in terms of performance?",
+  "What is the screen size of the Galaxy S22?",
+  "Which phone is the lightest?",
+];
+SAMPLES.forEach(s => {
+  const c = el("span", "chip", s);
+  c.onclick = () => { $("#q").value = s; ask(); };
+  $("#samples").append(c);
+});
+
+async function ask() {
+  const q = $("#q").value.trim();
+  if (!q) return;
+  const out = $("#chatOut"), btn = $("#askBtn");
+  btn.disabled = true;
+  out.innerHTML = '<div class="answer"><span class="spin"></span> ' +
+                  'Retrieving specifications and generating an answer…</div>';
+
+  const started = Date.now();
+  try {
+    const r = await post("/chat", { question: q });
+    const box = el("div", "answer");
+
+    const meta = el("div", "meta");
+    meta.append(el("span", "badge", r.intent.replace(/_/g, " ")));
+    meta.append(el("span", "muted", ((Date.now() - started) / 1000).toFixed(1) + "s"));
+    if (r.phones_referenced.length)
+      meta.append(el("span", "muted", "· " + r.phones_referenced.join(", ")));
+    box.append(meta);
+
+    box.append(el("div", null, r.answer));
+
+    if (r.sources && r.sources.length) {
+      const s = el("div", "sources");
+      s.append(el("div", null, "Retrieved from:"));
+      r.sources.slice(0, 6).forEach(x =>
+        s.append(el("span", null, x.phone + " — " + x.section)));
+      box.append(s);
+    }
+    out.innerHTML = ""; out.append(box);
+  } catch (e) {
+    out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------- compare ---------------- */
+async function compare() {
+  const a = $("#cmpA").value, b = $("#cmpB").value;
+  const out = $("#cmpOut"), btn = $("#cmpBtn");
+  if (a === b) { out.innerHTML = '<div class="err">Choose two different phones.</div>'; return; }
+
+  btn.disabled = true;
+  out.innerHTML = '<p class="note"><span class="spin"></span> Comparing…</p>';
+  try {
+    const r = await post("/compare", { phones: [a, b] });
+    const wrap = el("div", "tablewrap");
+    const t = el("table");
+
+    const th = el("tr");
+    th.append(el("th", null, "Specification"));
+    r.phones.forEach(p => th.append(el("th", null, p)));
+    const hd = el("thead"); hd.append(th); t.append(hd);
+
+    const tb = el("tbody");
+    r.rows.forEach(row => {
+      const tr = el("tr");
+      const label = el("td", null, row.attribute);
+      label.style.color = "var(--muted)";
+      tr.append(label);
+      r.phones.forEach(p => {
+        const td = el("td", row.winner === p ? "win" : null, row.values[p] ?? "—");
+        tr.append(td);
+      });
+      tb.append(tr);
+    });
+    t.append(tb); wrap.append(t);
+
+    out.innerHTML = "";
+    out.append(wrap);
+    out.append(el("p", "note",
+      "Values shown in green are the higher (or lighter, for weight) of the two. " +
+      "Rows with identical values are left unmarked."));
+  } catch (e) {
+    out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------- review ---------------- */
+const CREW = [
+  ["specification_agent", "Reads the full specification dossier from MySQL"],
+  ["comparison_agent",    "Ranks the phone against the whole catalogue"],
+  ["review_agent",        "Writes the review from the verified facts"],
+];
+
+async function review() {
+  const phone = $("#revPhone").value;
+  const btn = $("#revBtn"), out = $("#revOut"), agents = $("#revAgents");
+  btn.disabled = true;
+  out.innerHTML = "";
+
+  agents.innerHTML = "";
+  CREW.forEach(([name, role], i) => {
+    const a = el("div", "agent" + (i === 0 ? " run" : "")); a.id = "ag" + i;
+    a.append(el("div", "idx", String(i + 1)));
+    const d = el("div");
+    d.append(el("div", "nm", name), el("div", "rl", role));
+    a.append(d);
+    a.append(el("div", "t", i === 0 ? "working…" : "queued"));
+    agents.append(a);
+  });
+
+  const started = Date.now();
+  const timer = setInterval(() => {
+    const s = ((Date.now() - started) / 1000).toFixed(0);
+    const node = $("#ag2 .t");
+    if (node && node.textContent !== "queued") node.textContent = s + "s elapsed";
+  }, 1000);
+
+  // The data agents finish in milliseconds; the writer takes the rest.
+  setTimeout(() => {
+    ["ag0", "ag1"].forEach(id => {
+      const n = document.getElementById(id);
+      if (n) { n.className = "agent done"; n.querySelector(".t").textContent = "done"; }
+    });
+    const w = $("#ag2");
+    if (w) { w.className = "agent run"; w.querySelector(".t").textContent = "0s elapsed"; }
+  }, 900);
+
+  try {
+    const r = await post("/reviews", { phone });
+    clearInterval(timer);
+
+    r.agents.forEach((step, i) => {
+      const n = document.getElementById("ag" + i);
+      if (!n) return;
+      n.className = "agent " + (step.success ? "done" : "");
+      n.querySelector(".t").textContent = step.duration_seconds.toFixed(2) + "s";
+      n.querySelector(".rl").textContent = step.summary || step.role;
+    });
+
+    const rev = r.review;
+    const box = el("div", "review");
+    box.append(el("h2", null, rev.title));
+    if (rev.subtitle) box.append(el("p", "muted", rev.subtitle));
+
+    const specs = Object.entries(rev.quick_specs).filter(([, v]) => v);
+    if (specs.length) {
+      box.append(el("h3", null, "At a glance"));
+      const wrap = el("div", "tablewrap"), t = el("table"), tb = el("tbody");
+      specs.forEach(([k, v]) => {
+        const tr = el("tr");
+        const key = el("td", null, k);
+        key.style.width = "170px"; key.style.color = "var(--muted)";
+        tr.append(key, el("td", null, String(v)));
+        tb.append(tr);
+      });
+      t.append(tb); wrap.append(t); box.append(wrap);
+    }
+
+    rev.sections.forEach(s => {
+      box.append(el("h3", null, s.title));
+      box.append(el("p", null, s.body));
+    });
+
+    box.append(el("h3", null, "Verdict"));
+    box.append(el("p", "verdict", rev.verdict));
+    box.append(el("p", "note",
+      "Generated in " + r.duration_seconds.toFixed(1) + "s by " + r.agents.length + " agents."));
+
+    out.innerHTML = ""; out.append(box);
+  } catch (e) {
+    clearInterval(timer);
+    out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------- boot ---------------- */
+loadHealth();
+loadPhones();
+setInterval(loadHealth, 30000);
+</script>
+</body>
+</html>
