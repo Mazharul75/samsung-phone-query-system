@@ -23,11 +23,15 @@ from __future__ import annotations
 import logging
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path as FilePath
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Path, Query
+# FastAPI also exports a "Path" (for path parameters), so the filesystem one
+# is aliased to keep both usable in this module.
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from src.agents.crew import ReviewCrew, get_crew
 from src.api.schemas import (
@@ -218,13 +222,37 @@ def _detail(phone: Phone, repository: PhoneRepository) -> PhoneDetail:
 # ---------------------------------------------------------------------------
 # Service endpoints
 # ---------------------------------------------------------------------------
-@app.get("/", tags=["service"])
+#: The single-page web client, served at the site root.
+_UI_FILE = FilePath(__file__).parent / "static" / "index.html"
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def web_client() -> HTMLResponse:
+    """Serve the browser interface.
+
+    The page is plain HTML and vanilla JavaScript with no build step, and it
+    calls only the public endpoints documented below - so it is a client of
+    this API, not a privileged part of it.  If the file is missing the API
+    still works; the caller is simply pointed at the documentation.
+    """
+    try:
+        return HTMLResponse(_UI_FILE.read_text(encoding="utf-8"))
+    except OSError:
+        return HTMLResponse(
+            "<h1>Samsung Phone Query and Review System</h1>"
+            '<p>Web client not found. The API is available at <a href="/docs">/docs</a>.</p>',
+            status_code=200,
+        )
+
+
+@app.get("/api", tags=["service"])
 def root() -> dict[str, Any]:
     """Service description and endpoint index."""
     return {
         "service": "Samsung Phone Query and Review System",
         "version": "1.0.0",
         "documentation": "/docs",
+        "web_client": "/",
         "endpoints": {
             "POST /chat": "Ask a question about Samsung phones",
             "POST /compare": "Compare two or three phones",
@@ -347,7 +375,7 @@ def search_phones(
 
 @app.get("/phones/{key}", response_model=PhoneDetail, tags=["phones"])
 def get_phone(
-    key: str = Path(..., description="Numeric id, slug, or model name."),
+    key: str = PathParam(..., description="Numeric id, slug, or model name."),
 ) -> PhoneDetail:
     """Return the full specification sheet for one phone."""
     with session_scope() as session:
